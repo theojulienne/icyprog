@@ -9,6 +9,11 @@ import icyprog.protocols.jtag;
 import icyprog.debuginterface;
 
 class PenprogInterface : DebugInterface, IJTAG {
+	const byte jtagCommandClockBit = 0x20;
+	const byte jtagCommandReset = 0x02;
+	//const byte jtagCommandGetBoard = 0x01;
+	
+	
 	const uint USBVendorId = 0x03EB;
 	const uint USBProductId = 0x2018;
 	
@@ -26,6 +31,7 @@ class PenprogInterface : DebugInterface, IJTAG {
 	~this( ) {
 	    writefln( "Releasing interface..." );
 		_device.releaseInterface( jtagInterface );
+		writefln( "Penprog interface released." );
 	}
 	
 	void device( USBDevice dev ) {
@@ -66,10 +72,10 @@ class PenprogInterface : DebugInterface, IJTAG {
 	}
 	
 	public void JTAGReset( bool systemReset, bool testReset ) {
-		byte[32] bytes;
+		ubyte[32] bytes;
 		int ret;
 		
-		bytes[0] = 0x02; // RESET
+		bytes[0] = jtagCommandReset; // RESET
 		bytes[1] = (systemReset ? 1 : 0);
 		bytes[2] = (testReset ? 1 : 0);
 		
@@ -89,10 +95,10 @@ class PenprogInterface : DebugInterface, IJTAG {
 	public TAPResponse JTAGCommand( TAPCommand cmd ) {
 		TAPResponse response = null;
 		uint numBytes = cmd.neededBytes( );
-		byte[] responseBytes;
+		ubyte[] responseBytes;
 		responseBytes.length = numBytes;
 		response = new TAPResponse( responseBytes );
-		byte[2] bytes;
+		ubyte[2] bytes;
 		
 		//writefln( "writing %s bits", cmd.bitLength );
 		
@@ -100,7 +106,7 @@ class PenprogInterface : DebugInterface, IJTAG {
 			bool dataBit = cmd.GetBit(i);
 			bool tmsBit = cmd.GetTMSBit(i);
 			
-			byte outByte = 0;
+			ubyte outByte = 0;
 			
 			if ( dataBit )
 				outByte |= 1;
@@ -110,8 +116,9 @@ class PenprogInterface : DebugInterface, IJTAG {
 			
 			int ret;
 			
-			bytes[0] = 0x20; // JTAG_CLOCK_BIT
+			bytes[0] = jtagCommandClockBit;
 			bytes[1] = outByte;
+			//writefln( "write = %s", bytes[1] );
 			while ( (ret = device.bulkWrite( jtagBulkOut, bytes )) != bytes.length ) {
 				writefln( "USB Bulk Write failed (%s), retrying...", ret ); // loopies
 				//try {device.ClearHalt( jtagBulkOut );} catch {}
@@ -119,13 +126,15 @@ class PenprogInterface : DebugInterface, IJTAG {
 				//System.Threading.Thread.Sleep( 100 );
 			}
 			
-			byte[32] readBytes;
+			ubyte[32] readBytes;
 			while ( (ret = device.bulkRead( jtagBulkIn, readBytes )) != readBytes.length ) {
 				writefln( "USB Bulk Read failed (%s), retrying...", ret ); // loopies
 				//try {device.ClearHalt( jtagBulkIn );} catch {}
 				
 				//System.Threading.Thread.Sleep( 100 );
 			}
+			
+			//writefln( "read = %s", readBytes[1] );
 			
 			response.SetBit( i, (readBytes[1] != 0) );
 		}

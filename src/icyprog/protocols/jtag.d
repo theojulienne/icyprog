@@ -5,38 +5,39 @@ import std.string;
 import std.stdio;
 
 import tango.util.container.LinkedList;
+import tango.core.BitArray;
 
 struct _int_hax {
 	union {
 		uint ival;
-		byte[4] bytes;
+		ubyte[4] bytes;
 	}
 }
 
 struct _short_hax {
 	union {
 		ushort ival;
-		byte[4] bytes;
+		ubyte[4] bytes;
 	}
 }
 
 class BitConverter {
-	static byte[] GetBytes( uint a ) {
+	static ubyte[] GetBytes( uint a ) {
 		_int_hax i;
 		i.ival = a;
 		
 		return i.bytes.dup;
 	}
 	
-	static uint ToUInt32( byte[] bytes, int wtf ) {
+	static uint ToUInt32( ubyte[] bytes, int wtf ) {
 		_int_hax i;
-		i.bytes[0..i.ival.sizeof] = bytes;
+		i.bytes[0..4] = bytes;
 		return i.ival;
 	}
 	
-	static uint ToUInt16( byte[] bytes, int wtf ) {
+	static uint ToUInt16( ubyte[] bytes, int wtf ) {
 		_short_hax i;
-		i.bytes[0..i.ival.sizeof] = bytes;
+		i.bytes[0..2] = bytes;
 		return i.ival;
 	}
 }
@@ -187,7 +188,7 @@ static class TAPStateTree {
 }
 
 struct TAPDeviceIDRegister {
-	public byte Version;
+	public ubyte Version;
 	public short PartNumber;
 	public short ManufacturerID;
 	
@@ -211,8 +212,8 @@ struct TAPDeviceIDRegister {
 struct TAPCommand {
 	public uint bitLength;
 	
-	public byte[] tmsBits;
-	public byte[] dataBits;
+	public ubyte[] tmsBits;
+	public ubyte[] dataBits;
 	
 	// shouldRead = 1: read bytes after sending
 	// shouldWrite = 1: write bytes
@@ -244,8 +245,8 @@ struct TAPCommand {
 		return SendData( bitLength, dataBits, 0, Method.SendData );
 	}
 	
-	public static TAPCommand SendData( uint bitLength, byte[] dataBits ) {
-		byte[] tmsBits = new byte[dataBits.length];
+	public static TAPCommand SendData( uint bitLength, ubyte[] dataBits ) {
+		ubyte[] tmsBits = new ubyte[dataBits.length];
 		return SendData( bitLength, dataBits, tmsBits, Method.SendData );
 	}
 	
@@ -253,7 +254,7 @@ struct TAPCommand {
 		return SendData( bitLength, dataBits, tmsBits, Method.SendData | Method.SendTMS );
 	}
 	
-	public static TAPCommand SendData( uint bitLength, byte[] dataBits, byte[] tmsBits ) {
+	public static TAPCommand SendData( uint bitLength, ubyte[] dataBits, ubyte[] tmsBits ) {
 		return SendData( bitLength, dataBits, tmsBits, Method.SendData | Method.SendTMS );
 	}
 	
@@ -261,7 +262,7 @@ struct TAPCommand {
 		return SendData( cast(uint)bitLength, cast(uint)dataBits, cast(uint)tmsBits, Method.SendData | Method.SendTMS );
 	}
 	
-	public static TAPCommand SendData( uint bitLength, byte[] dataBits, byte[] tmsBits, Method m ) {
+	public static TAPCommand SendData( uint bitLength, ubyte[] dataBits, ubyte[] tmsBits, Method m ) {
 		TAPCommand cmd;
 		
 		cmd.bitLength = bitLength;
@@ -276,7 +277,7 @@ struct TAPCommand {
 		return SendData( bitLength, BitConverter.GetBytes( dataBits ), BitConverter.GetBytes( tmsBits ), m );
 	}
 	
-	public static TAPCommand SendReceiveData( uint bitLength, byte[] dataBits ) {
+	public static TAPCommand SendReceiveData( uint bitLength, ubyte[] dataBits ) {
 		TAPCommand cmd = SendData( bitLength, dataBits );
 		cmd.method = Method.SendReceiveData;
 		return cmd;
@@ -309,17 +310,17 @@ struct TAPCommand {
 		return cmd;
 	}
 	
-	public static bool GetBitFromBytes( byte[] bytes, int bit ) {
+	public static bool GetBitFromBytes( ubyte[] bytes, int bit ) {
 		int actualByte = bit / 8;
 		int actualBit = bit % 8;
 		return (bytes[actualByte] & (1 << actualBit)) != 0;
 	}
 	
-	public static void SetBitFromBytes( byte[] bytes, int bit, bool val ) {
+	public static void SetBitFromBytes( ubyte[] bytes, int bit, bool val ) {
 		int actualByte = bit / 8;
 		int actualBit = bit % 8;
 		
-		byte bitVal = cast(byte)(1 << actualBit);
+		ubyte bitVal = cast(byte)(1 << actualBit);
 		
 		if ( val )
 			bytes[actualByte] |= bitVal;
@@ -357,13 +358,13 @@ struct TAPCommand {
 		return byteCount;
 	}
 	
-	public static byte[] GetBitsForRange( byte[] bytes, int startIndex, int numBits ) {
+	public static ubyte[] GetBitsForRange( ubyte[] bytes, int startIndex, int numBits ) {
 		int byteCount = numBits / 8;
 		
 		if ( (numBits%8) > 0 )
 			byteCount++;
 		
-		byte[] newBytes = new byte[byteCount];
+		ubyte[] newBytes = new ubyte[byteCount];
 		
 		for ( int i = 0; i < byteCount; i++ ) {
 			newBytes[i] = 0;
@@ -377,11 +378,11 @@ struct TAPCommand {
 		return newBytes;
 	}
 	
-	public byte[] GetTMSBits( int startIndex, uint numBits ) {
+	public ubyte[] GetTMSBits( int startIndex, uint numBits ) {
 		return GetBitsForRange( tmsBits, startIndex, cast(int)numBits );
 	}
 	
-	public byte[] GetDataBits( int startIndex, uint numBits ) {
+	public ubyte[] GetDataBits( int startIndex, uint numBits ) {
 		return GetBitsForRange( dataBits, startIndex, cast(int)numBits );
 	}
 	
@@ -490,9 +491,9 @@ struct TAPCommand {
 }
 
 class TAPResponse {
-	public byte[] data;
+	public ubyte[] data;
 	
-	this( byte[] inData ) {
+	this( ubyte[] inData ) {
 		data = inData;
 		//writefln( "{0} = inLength", inData.length );
 	}
@@ -505,7 +506,7 @@ class TAPResponse {
 		return BitConverter.ToUInt32( data, 0 );
 	}
 	
-	public byte GetByte( uint index ) {
+	public ubyte GetByte( uint index ) {
 		return data[index];
 	}
 	
@@ -565,7 +566,7 @@ class TAPStateMachine {
 		GotoState( TAPState.RunTestIdle ); // return to RunTestIdle
 	}
 	
-	public void ScanIR( int bitLength, byte[] dataBits ) {
+	public void ScanIR( int bitLength, ubyte[] dataBits ) {
 		//writefln( "" );
 		//writefln( "Scan IR ({0})", bitLength );
 		GotoState( TAPState.ShiftIR ); // get to ShiftIR
@@ -577,13 +578,13 @@ class TAPStateMachine {
 	
 	public void ScanDR( int bitLength, int dataBits ) {
 		//writefln( "" );
-		//writefln( "Scan DR ({0} {1})", bitLength, dataBits );
+		//writefln( "Scan DR (%s %s)", bitLength, dataBits );
 		GotoState( TAPState.ShiftDR ); // get to ShiftDR
 		SendCommand( TAPCommand.SendData( bitLength, dataBits, 1<<(bitLength-1) ) ); // TMS on last bit only
 		GotoState( TAPState.RunTestIdle ); // return to RunTestIdle
 	}
 	
-	public void ScanDR( int bitLength, byte[] dataBits ) {
+	public void ScanDR( int bitLength, ubyte[] dataBits ) {
 		//writefln( "" );
 		//writefln( "Scan DR ({0})", bitLength );
 		GotoState( TAPState.ShiftDR ); // get to ShiftDR
@@ -605,7 +606,7 @@ class TAPStateMachine {
 		return response;
 	}
 	
-	public TAPResponse ScanIRRecv( int bitLength, byte[] dataBits ) {
+	public TAPResponse ScanIRRecv( int bitLength, ubyte[] dataBits ) {
 		//writefln( "" );
 		//writefln( "Scan IR+recv ({0} {1})", bitLength, dataBits );
 		GotoState( TAPState.ShiftIR ); // get to ShiftIR
@@ -627,7 +628,7 @@ class TAPStateMachine {
 		return response;
 	}
 	
-	public TAPResponse ScanDRRecv( int bitLength, byte[] dataBits ) {
+	public TAPResponse ScanDRRecv( int bitLength, ubyte[] dataBits ) {
 		//writefln( "" );
 		//writefln( "Scan DR+recv ({0} {1})", bitLength, dataBits );
 		GotoState( TAPState.ShiftDR ); // get to ShiftDR

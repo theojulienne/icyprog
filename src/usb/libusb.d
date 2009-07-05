@@ -18,8 +18,8 @@ extern (C) {
 	int usb_claim_interface( usb_dev_handle *dev, int iface );
 	int usb_release_interface( usb_dev_handle *dev, int iface );
 	
-	int usb_bulk_read( usb_dev_handle *dev, int ep, byte *bytes, int size, int timeout );
-	int usb_bulk_write( usb_dev_handle *dev, int ep, byte *bytes, int size, int timeout );
+	int usb_bulk_read( usb_dev_handle *dev, int ep, ubyte *bytes, int size, int timeout );
+	int usb_bulk_write( usb_dev_handle *dev, int ep, ubyte *bytes, int size, int timeout );
 	
 	
 	/* wrapper functions to get out of duplicating the struct definitions */

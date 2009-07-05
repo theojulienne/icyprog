@@ -16,9 +16,7 @@ class DebugInterface {
 	}
 	
 	static ~this( ) {
-		foreach ( name; interfaces ) {
-			interfaces.remove( name );
-		}
+		interfaces = null; // delete our interface list so the DebugInterface's are GCd
 	}
 	
 	public static void AddInstanceForReference( Object interfaceReference, DebugInterface iface ) {

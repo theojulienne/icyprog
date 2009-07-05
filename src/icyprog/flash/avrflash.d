@@ -45,10 +45,10 @@ class AVRFlash : Flash {
 		Thread.sleep( 0.010 );
 	}
 	
-	public void WritePage( int pageNum, byte[] page ) {
+	public void WritePage( int pageNum, ubyte[] page ) {
 		ProgCommands( );
 		
-		byte[] realPage;
+		ubyte[] realPage;
 		realPage.length = 128;
 		//Array.Copy( page, 0, realPage, 0, page.Length );
 		realPage[0..page.length] = page;
@@ -74,8 +74,8 @@ class AVRFlash : Flash {
 		Thread.sleep( 0.010 );
 	}
 	
-	public byte[] ReadPage( int pageNum ) {
-		byte[] dummyData; // dummy data
+	public ubyte[] ReadPage( int pageNum ) {
+		ubyte[] dummyData; // dummy data
 		dummyData.length = 129;
 		
 		ProgCommands( );
@@ -89,7 +89,7 @@ class AVRFlash : Flash {
 		tapState.ScanIR( 4, 0x7 ); // PROG_PAGEREAD
 		TAPResponse pageData = tapState.ScanDRRecv( 1032, dummyData ); // Load Data Page
 		
-		byte[] outData = pageData.data[1..$].dup;
+		ubyte[] outData = pageData.data[1..$].dup;
 		//Array.Copy( pageData.data, 1, outData, 0, 128 );
 		
 		return outData;
@@ -111,18 +111,20 @@ class AVRFlash : Flash {
 	}
 	
 	// FIXME: this isn't a job the flash would be doing. Move this to Chip later.
-	public byte ReadFuseL( ) {
+	public ubyte ReadFuseL( ) {
 		ProgCommands( );
 		
 		tapState.ScanDR( 15, 0x2304 ); // 8a. Enter Fuse/Lock Bit Read
 		tapState.ScanDR( 15, 0x3200 ); // 8c. Read Fuse Low Byte
 		TAPResponse response = tapState.ScanDRRecv( 15, 0x3300 );
 		
-		return cast(byte)(cast(int)response.GetUInt16( ) & 0xFF);
+		return cast(ubyte)(cast(int)response.GetUInt16( ) & 0xFF);
 	}
 	
-	public void WriteFuseL( byte fuseValue ) {
+	public void WriteFuseL( ubyte fuseValue ) {
 		ProgCommands( );
+		
+		writefln( "fuseL=%s", fuseValue );
 		
 		tapState.ScanDR( 15, 0x2340 ); // 6a. Enter Fuse Write
 		tapState.ScanDR( 15, 0x1300 | fuseValue ); // 6e. Load Data Low Byte
@@ -133,21 +135,33 @@ class AVRFlash : Flash {
 		
 		// FIXME: Should do "6g. Poll for Fuse Write complete" here
 		
-		Thread.sleep( 0.500 );
+		Thread.sleep( 1 );
 	}
 	
-	public byte ReadFuseH( ) {
+	public ubyte ReadFuseH( ) {
 		ProgCommands( );
 		
 		tapState.ScanDR( 15, 0x2304 ); // 8a. Enter Fuse/Lock Bit Read
 		tapState.ScanDR( 15, 0x3E00 ); // 8b. Read Fuse High Byte
 		TAPResponse response = tapState.ScanDRRecv( 15, 0x3F00 );
 		
-		return cast(byte)(cast(int)response.GetUInt16( ) & 0xFF);
+		return cast(ubyte)(cast(int)response.GetUInt16( ) & 0xFF);
 	}
 	
-	public void WriteFuseH( byte fuseValue ) {
+	public void WriteFuseH( ubyte fuseValue ) {
 		ProgCommands( );
+		
+		writefln( "fuseH=%s", fuseValue );
+		
+		const ubyte JTAGEN = (1<<6);
+		
+		// we don't want JTAG disabled. ever, ever, ever. catch it, just in case :)
+		assert( (fuseValue & JTAGEN) == 0, "I don't think you really want JTAG disabled." );
+		// i dont even trust assert always being right. bricking sucks.
+		if ( !((fuseValue & JTAGEN) == 0) ) {
+			throw new Exception( "NO BRICKING" );
+			return; // in case "on error resume next" is ever implemented in D.
+		}
 		
 		tapState.ScanDR( 15, 0x2340 ); // 6a. Enter Fuse Write
 		tapState.ScanDR( 15, 0x1300 | fuseValue ); // 6b. Load Data Low Byte
@@ -158,6 +172,6 @@ class AVRFlash : Flash {
 		
 		// FIXME: Should do "6d. Poll for Fuse Write complete" here
 		
-		Thread.sleep( 0.500 );
+		Thread.sleep( 1 );
 	}
 }

@@ -21,6 +21,7 @@ int main( string[] args ) {
 		
 		// typeof(IJTAG).IsAssignableFrom( iface.GetType( ) )
 		IJTAG jtagiface = cast(IJTAG)iface;
+		scope(exit) delete jtagiface; // destroy it, so interfaces are released
 	
 		writefln( "%s", iface.GetInterfaceName( ) );
 	
@@ -130,7 +131,7 @@ int main( string[] args ) {
 		int page = 0;
 		int bytesRead = 1;
 		while ( bytesRead > 0 ) {
-			byte[] bytes;
+			ubyte[] bytes;
 			bytes.length = 0x80;
 			int numBytes = file.read( bytes );
 			
@@ -152,11 +153,11 @@ int main( string[] args ) {
 		page = 0;
 		bytesRead = 1;
 		while ( bytesRead > 0 ) {
-			byte[] correctBytes;
+			ubyte[] correctBytes;
 			correctBytes.length = 0x80;
 			int numBytes = file.read( correctBytes );
 			
-			byte[] verifyBytes = fl.ReadPage( page );
+			ubyte[] verifyBytes = fl.ReadPage( page );
 			
 			if ( numBytes == IConduit.Eof )
 				break;
@@ -192,10 +193,10 @@ int main( string[] args ) {
 		// High: 0x89 = 0b10001001
 		
 		writefln( "ReadFuseL() = %s", fl.ReadFuseL( ) );
-		fl.WriteFuseL( cast(byte)0xEF );
+		fl.WriteFuseL( 0xEF );
 		
 		writefln( "ReadFuseH() = %s", fl.ReadFuseH( ) );
-		fl.WriteFuseH( cast(byte)0x89 );
+		fl.WriteFuseH( 0x89 );
 		
 		fl.LeaveProgMode( );
 		

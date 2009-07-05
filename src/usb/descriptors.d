@@ -3,29 +3,29 @@ module usb.descriptors;
 align(1):
 
 struct USBDeviceDescriptor {
-	byte bLength;
-	byte bDescriptorType;
+	ubyte bLength;
+	ubyte bDescriptorType;
 	ushort bcdUSB;
-	byte bDeviceClass;
-	byte bDeviceSubClass;
-	byte bDeviceProtocol;
-	byte bMaxPacketSize0;
+	ubyte bDeviceClass;
+	ubyte bDeviceSubClass;
+	ubyte bDeviceProtocol;
+	ubyte bMaxPacketSize0;
 	ushort idVendor;
 	ushort idProduct;
 	ushort bcdDevice;
-	byte iManufacturer;
-	byte iProduct;
-	byte iSerialNumber;
-	byte bNumConfigurations;
+	ubyte iManufacturer;
+	ubyte iProduct;
+	ubyte iSerialNumber;
+	ubyte bNumConfigurations;
 }
 
 struct USBConfigurationDescriptor {
-	byte  bLength;
-	byte  bDescriptorType;
+	ubyte  bLength;
+	ubyte  bDescriptorType;
 	ushort wTotalLength;
-	byte  bNumInterfaces;
-	byte  bConfigurationValue;
-	byte  iConfiguration;
-	byte  bmAttributes;
-	byte  MaxPower;
+	ubyte  bNumInterfaces;
+	ubyte  bConfigurationValue;
+	ubyte  iConfiguration;
+	ubyte  bmAttributes;
+	ubyte  MaxPower;
 }

@@ -79,11 +79,11 @@ class USBDevice {
 		assert( usb_release_interface( _hdl, iface ) == 0 );
 	}
 	
-	int bulkRead( int endpoint, byte[] data ) {
+	int bulkRead( int endpoint, ubyte[] data ) {
 		return usb_bulk_read( _hdl, endpoint, data.ptr, data.length, timeout );
 	}
 	
-	int bulkWrite( int endpoint, byte[] data ) {
+	int bulkWrite( int endpoint, ubyte[] data ) {
 		return usb_bulk_write( _hdl, endpoint, data.ptr, data.length, timeout );
 	}
 }
