@@ -13,7 +13,9 @@ class PenprogInterface : DebugInterface, IJTAG {
 	const byte jtagCommandReset = 0x02;
 	const byte jtagCommandJumpBootloader = 0x03;
 	const byte jtagCommandFirmwareVersion = 0x04;
+
 	const byte jtagCommandClockBit = 0x20;
+	const byte jtagCommandClockBits = 0x21;
 	
 	
 	const uint USBVendorId = 0x03EB;
@@ -94,6 +96,71 @@ class PenprogInterface : DebugInterface, IJTAG {
 		}
 	}
 	
+	struct ClockBitsOutData {
+		ubyte[30] data;
+		
+		void setBit( int bitNum, bool dataBit, bool tmsBit ) {
+			int bitOffset = ((bitNum%4)*2);
+			
+			data[bitNum/4] &= ~(0x3 << bitOffset);
+			
+			if ( dataBit )
+				data[bitNum/4] |= (1 << bitOffset);
+			if ( tmsBit )
+				data[bitNum/4] |= (2 << bitOffset);
+		}
+	}
+	
+	struct ClockBitsInData {
+		ubyte[30] data;
+		
+		bool getBit( int bitNum ) {
+			return ((data[bitNum/8] >> (bitNum%8)) & 0x1) != 0;
+		}
+	}
+	
+	void processChunk( TAPCommand cmd, TAPResponse response, int startIndex, int numBits ) {
+		ClockBitsOutData outData;
+		ubyte[32] usbMsg;
+		int ret;
+		
+		// prepare our output data
+		for ( int i = startIndex; i < startIndex+numBits; i++ ) {
+			bool dataBit = cmd.GetBit(i);
+			bool tmsBit = cmd.GetTMSBit(i);
+			
+			outData.setBit( i - startIndex, dataBit, tmsBit );
+		}
+		
+		//writefln( "Chunk will contain %d bits, starting from [%d]", numBits, startIndex );
+		
+		// prepare our usb message
+		usbMsg[0] = jtagCommandClockBits;
+		usbMsg[1] = numBits;
+		usbMsg[2..$] = outData.data;
+		while ( (ret = device.bulkWrite( jtagBulkOut, usbMsg )) != usbMsg.length ) {
+			writefln( "CHUNK: USB Bulk Write failed (%s), retrying...", ret ); // loopies
+		}
+		
+		// read the response
+		ubyte[32] readBytes;
+		while ( (ret = device.bulkRead( jtagBulkIn, readBytes )) != readBytes.length ) {
+			writefln( "USB Bulk Read failed (%s), retrying...", ret ); // loopies
+			writefln( "%s", device.getError( ) );
+		}
+		
+		//writefln( "read = %s", readBytes[1] );
+		
+		// set our response bits
+		ClockBitsInData inData;
+		inData.data[0..$] = readBytes[2..$];
+		for ( int i = startIndex; i < startIndex+numBits; i++ ) {
+			bool currBit = inData.getBit( i - startIndex );
+			response.SetBit( i, currBit );
+			//writefln( "[%d] %d", i, currBit );
+		}
+	}
+	
 	public TAPResponse JTAGCommand( TAPCommand cmd ) {
 		TAPResponse response = null;
 		uint numBytes = cmd.neededBytes( );
@@ -104,6 +171,22 @@ class PenprogInterface : DebugInterface, IJTAG {
 		
 		//writefln( "writing %s bits", cmd.bitLength );
 		
+		// usb msg = 32 bytes, 2 instruction bytes, then 4 bits per byte
+		// (because 2 physical bits per logical bit/clock)
+		const int MaxBitsPerMessage = ((32-2) * 4);
+		
+		for ( int i = 0; i < cmd.bitLength; ) {
+			int numBits = MaxBitsPerMessage;
+			
+			if ( i + numBits > cmd.bitLength )
+				numBits = cmd.bitLength - i;
+			
+			processChunk( cmd, response, i, numBits );
+			
+			i += MaxBitsPerMessage;
+		}
+		
+		/*
 		for ( int i = 0; i < cmd.bitLength; i++ ) {
 			bool dataBit = cmd.GetBit(i);
 			bool tmsBit = cmd.GetTMSBit(i);
@@ -141,6 +224,7 @@ class PenprogInterface : DebugInterface, IJTAG {
 			
 			response.SetBit( i, (readBytes[1] != 0) );
 		}
+		*/
 		
 		return response;
 	}
