@@ -590,9 +590,9 @@ class TAPStateMachine {
 		GotoState( TAPState.ShiftDR ); // get to ShiftDR
 		TAPCommand cmd = TAPCommand.SendData( cast(uint)bitLength, dataBits );
 		cmd.SetTMSBit( bitLength-1, true ); // TMS on last bit only
-		writefln( "-------- START SCAN DR --------" );
+		//writefln( "-------- START SCAN DR --------" );
 		SendCommand( cmd );
-		writefln( "-------- END SCAN DR -------" );
+		//writefln( "-------- END SCAN DR -------" );
 		GotoState( TAPState.RunTestIdle ); // return to RunTestIdle
 	}
 	

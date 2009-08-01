@@ -1,7 +1,16 @@
 module usb.device;
 
+import std.compat;
+import std.string;
+
 import usb.libusb;
 import usb.descriptors;
+
+class USBException : Exception {
+	this( string prefix ) {
+		super( prefix ~ ": " ~ std.string.toString( usb_strerror( ) ) );
+	}
+}
 
 class USBDevice {
 	static USBDevice[usb_device*] dev_map;
@@ -85,5 +94,9 @@ class USBDevice {
 	
 	int bulkWrite( int endpoint, ubyte[] data ) {
 		return usb_bulk_write( _hdl, endpoint, data.ptr, data.length, timeout );
+	}
+	
+	string getError( ) {
+		return std.string.toString( usb_strerror( ) );
 	}
 }

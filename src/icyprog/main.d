@@ -2,16 +2,130 @@ module icyprog.main;
 
 import std.compat;
 import std.stdio;
+import std.string;
 
 import tango.io.device.File;
 import tango.io.device.Conduit;
+import tango.util.ArgParser;
 
 import icyprog.protocols.jtag;
 import icyprog.debuginterface;
 import icyprog.interfaces.penguinoavr;
 import icyprog.flash.avrflash;
 
-int main( string[] args ) {
+import icyprog.chip;
+import icyprog.board;
+import icyprog.memory;
+
+bool startswith( string haystack, string needle ) {
+	return ( haystack[0..needle.length] == needle );
+}
+
+int main( string[] argv ) {
+	
+	Board.enumerateBoards( );
+	scope(exit) Board.invalidateBoards( );
+	
+	string[] args = argv[1..$];
+	
+	string[string] uploadTargets;
+	
+	foreach ( arg; args ) {
+		if ( arg.startswith( "--upload-" ) ) {
+			string trail = arg[9..$];
+			string[] parts = trail.split( "=" );
+			
+			if ( parts.length != 2 ) {
+				throw new Exception( "Argument requires exactly 1 value: " ~ arg );
+			}
+			
+			string destination = parts[0];
+			string inputFilename = parts[1];
+			
+			if ( destination != "flash" ) {
+				throw new Exception( "Unknown upload target: " ~ destination );
+			}
+			
+			//writefln( "%s <- %s", destination, inputFilename );
+			uploadTargets[destination] = inputFilename;
+		} else {
+			throw new Exception( "Unknown argument: " ~ arg );
+		}
+	}
+	
+	writefln( "Boards: %s", Board.boards.size );
+	assert( Board.boards.size > 0 );
+	writefln( "Assuming first board..." );
+	Board board = Board.boards.get( 0 );
+	Chip chip = board.chips["user"]; // FIXME: assuming "user" chip
+	
+	board.showInformation( );
+	
+	foreach ( uploadTarget, uploadFilename; uploadTargets ) {
+		Memory targetMemory = chip.getMemory( uploadTarget );
+		
+		writefln( "" );
+		writefln( "Target name: %s", uploadTarget );
+		writefln( "Target size: %s bytes", targetMemory.memoryBytes );
+		writefln( "Target page size: %s bytes", targetMemory.pageBytes );
+		writefln( "Target pages: %s pages", targetMemory.numPages );
+		writefln( "Source filename: %s", uploadFilename );
+		
+		File file = new File( uploadFilename );
+		
+		int sourceBytes = file.length;
+		
+		writefln( "" );
+		writefln( "Erasing %s...", uploadTarget );
+		targetMemory.erase( );
+		
+		void reportOperationProgress( uint bytesCompleted ) {
+			if ( bytesCompleted > sourceBytes )
+				bytesCompleted = sourceBytes;
+			
+			writef( "\r  [" );
+			
+			int progressLength = 65;
+			int bytesPerChunk = sourceBytes / progressLength;
+			
+			for ( int i = 0; i < progressLength; i++ ) {
+				
+				if ( bytesCompleted > i * bytesPerChunk ) {
+					writef( "#" );
+				} else {
+					writef( "." );
+				}
+				
+			}
+			
+			float progressPercent = 0;
+			
+			if ( sourceBytes > 0 ) {
+				progressPercent = (cast(float)bytesCompleted / cast(float)sourceBytes) * 100;
+			}
+			
+			writef( "] %3.2f%%   (%d of %d bytes)", progressPercent, bytesCompleted, sourceBytes );
+			fflush( stdout );
+		}
+		
+		writefln( "\n" );
+		writefln( "Writing %s...", uploadTarget );
+		writef( " ~ starting ~ " );
+		targetMemory.writeStream( file, &reportOperationProgress );
+		
+		writefln( "\n" );
+		writefln( "Verifying %s...", uploadTarget );
+		writef( " ~ starting ~ " );
+		targetMemory.verifyStream( file, &reportOperationProgress );
+		
+		writefln( "\n" );
+		
+		targetMemory.finished( );
+	}
+	
+	writefln( "" );
+	
+	/*
 	PenguinoAVRInterface.DiscoverInterfaces( );
 	
 	DebugInterface[] ifaces = DebugInterface.GetInstancesForInterface!(PenguinoAVRInterface)();
@@ -204,6 +318,6 @@ int main( string[] args ) {
 		
 		writefln( "Success!" );
 	}
-	
+	*/
 	return 0;
 }

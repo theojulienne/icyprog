@@ -1,9 +1,11 @@
 module icyprog.flash.base;
 
-class Flash {
-	public uint flashSize = 0;
-	
-	this( ) {
-		
+import icyprog.board;
+import icyprog.chip;
+import icyprog.memory;
+
+class Flash : Memory {
+	this( Chip c ) {
+		super( c );
 	}
 }

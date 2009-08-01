@@ -5,6 +5,7 @@ import std.compat;
 import tango.util.container.LinkedList;
 
 import icyprog.flash.base;
+import icyprog.board;
 
 class DebugInterface {
 	static DebugInterface[Object] interfaces;
@@ -47,5 +48,13 @@ class DebugInterface {
 	
 	public string GetInterfaceName( ) {
 		return this.toString( );
+	}
+	
+	public abstract string getBoardName( ) {
+		return "DebugInterface";
+	}
+	
+	public abstract Board createBoard( ) {
+		return null;
 	}
 }

@@ -9,9 +9,11 @@ import icyprog.protocols.jtag;
 import icyprog.debuginterface;
 
 class PenprogInterface : DebugInterface, IJTAG {
-	const byte jtagCommandClockBit = 0x20;
+	const byte jtagCommandGetBoard = 0x01;
 	const byte jtagCommandReset = 0x02;
-	//const byte jtagCommandGetBoard = 0x01;
+	const byte jtagCommandJumpBootloader = 0x03;
+	const byte jtagCommandFirmwareVersion = 0x04;
+	const byte jtagCommandClockBit = 0x20;
 	
 	
 	const uint USBVendorId = 0x03EB;
@@ -51,12 +53,12 @@ class PenprogInterface : DebugInterface, IJTAG {
 	}
 	
 	public static void DiscoverInterfaces( T )( uint vendorId, uint productId ) {
-		writefln( "Searching busses..." );
+		//writefln( "Searching busses..." );
 		foreach ( bus; USB.busses ) {
-			writefln( "Searching descriptors in bus %s...", bus );
+			//writefln( "Searching descriptors in bus %s...", bus );
 			foreach ( dev; bus.devices ) {
 				auto desc = dev.descriptor;
-				writefln( "%s~%s %s~%s", desc.idVendor, vendorId, desc.idProduct, productId );
+				//writefln( "%s~%s %s~%s", desc.idVendor, vendorId, desc.idProduct, productId );
 				
 				if ( desc.idVendor != vendorId || desc.idProduct != productId )
 					continue;
@@ -129,6 +131,7 @@ class PenprogInterface : DebugInterface, IJTAG {
 			ubyte[32] readBytes;
 			while ( (ret = device.bulkRead( jtagBulkIn, readBytes )) != readBytes.length ) {
 				writefln( "USB Bulk Read failed (%s), retrying...", ret ); // loopies
+				writefln( "%s", device.getError( ) );
 				//try {device.ClearHalt( jtagBulkIn );} catch {}
 				
 				//System.Threading.Thread.Sleep( 100 );

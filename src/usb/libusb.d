@@ -21,6 +21,8 @@ extern (C) {
 	int usb_bulk_read( usb_dev_handle *dev, int ep, ubyte *bytes, int size, int timeout );
 	int usb_bulk_write( usb_dev_handle *dev, int ep, ubyte *bytes, int size, int timeout );
 	
+	char *usb_strerror( );
+	
 	
 	/* wrapper functions to get out of duplicating the struct definitions */
 	
