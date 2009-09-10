@@ -1,6 +1,6 @@
 module icyprog.chip;
 
-import std.compat;
+import std.compat : string;
 
 import icyprog.board;
 import icyprog.memory;

@@ -205,7 +205,8 @@ struct TAPDeviceIDRegister {
 	}
 	
 	public string toString( ) {
-		return std.string.format( "TAPDeviceIDRegister<manu=0x%03x,part=0x%04x,ver=0x%01x>", ManufacturerID, PartNumber, Version );
+		//return std.string.format( "TAPDeviceIDRegister<manu=0x%03x,part=0x%04x,ver=0x%01x>", ManufacturerID, PartNumber, Version );
+		return "<FIXME>";
 	}
 }
 

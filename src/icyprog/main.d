@@ -4,6 +4,7 @@ import std.compat;
 import std.stdio;
 import std.string;
 
+import tango.io.Stdout;
 import tango.io.device.File;
 import tango.io.device.Conduit;
 import tango.util.ArgParser;
@@ -62,28 +63,28 @@ int main( string[] argv ) {
 	board.showInformation( );
 	
 	foreach ( uploadTarget, uploadFilename; uploadTargets ) {
-		Memory targetMemory = chip.getMemory( uploadTarget );
+		icyprog.memory.Memory targetMemory = chip.getMemory( uploadTarget );
 		
-		writefln( "" );
-		writefln( "Target name: %s", uploadTarget );
-		writefln( "Target size: %s bytes", targetMemory.memoryBytes );
-		writefln( "Target page size: %s bytes", targetMemory.pageBytes );
-		writefln( "Target pages: %s pages", targetMemory.numPages );
-		writefln( "Source filename: %s", uploadFilename );
+		Stdout.format( "" ).newline;
+		Stdout.format( "Target name: {0}", uploadTarget ).newline;
+		Stdout.format( "Target size: {0} bytes", targetMemory.memoryBytes ).newline;
+		Stdout.format( "Target page size: {0} bytes", targetMemory.pageBytes ).newline;
+		Stdout.format( "Target pages: {0} pages", targetMemory.numPages ).newline;
+		Stdout.format( "Source filename: {0}", uploadFilename ).newline;
 		
 		File file = new File( uploadFilename );
 		
 		int sourceBytes = file.length;
 		
-		writefln( "" );
-		writefln( "Erasing %s...", uploadTarget );
+		Stdout.newline;
+		Stdout.format( "Erasing {0}...", uploadTarget ).newline;
 		targetMemory.erase( );
 		
 		void reportOperationProgress( uint bytesCompleted ) {
 			if ( bytesCompleted > sourceBytes )
 				bytesCompleted = sourceBytes;
 			
-			writef( "\r  [" );
+			Stdout( "\r  [" );
 			
 			int progressLength = 65;
 			int bytesPerChunk = sourceBytes / progressLength;
@@ -91,9 +92,9 @@ int main( string[] argv ) {
 			for ( int i = 0; i < progressLength; i++ ) {
 				
 				if ( bytesCompleted > i * bytesPerChunk ) {
-					writef( "#" );
+					Stdout( "#" );
 				} else {
-					writef( "." );
+					Stdout( "." );
 				}
 				
 			}
@@ -104,26 +105,27 @@ int main( string[] argv ) {
 				progressPercent = (cast(float)bytesCompleted / cast(float)sourceBytes) * 100;
 			}
 			
-			writef( "] %3.2f%%   (%d of %d bytes)", progressPercent, bytesCompleted, sourceBytes );
-			fflush( stdout );
+			Stdout.format( "] {0}%   ({1} of {2} bytes)", progressPercent, bytesCompleted, sourceBytes );
+			Stdout.flush;
+			//fflush( stdout );
 		}
 		
-		writefln( "\n" );
-		writefln( "Writing %s...", uploadTarget );
-		writef( " ~ starting ~ " );
+		Stdout.newline.newline;
+		Stdout.format( "Writing {0}...", uploadTarget ).newline;
+		Stdout( " ~ starting ~ " );
 		targetMemory.writeStream( file, &reportOperationProgress );
 		
-		writefln( "\n" );
-		writefln( "Verifying %s...", uploadTarget );
-		writef( " ~ starting ~ " );
+		Stdout.newline.newline;
+		Stdout.format( "Verifying {0}...", uploadTarget ).newline;
+		Stdout( " ~ starting ~ " );
 		targetMemory.verifyStream( file, &reportOperationProgress );
 		
-		writefln( "\n" );
+		Stdout.newline;
 		
 		targetMemory.finished( );
 	}
 	
-	writefln( "" );
+	Stdout.newline;
 	
 	/*
 	PenguinoAVRInterface.DiscoverInterfaces( );

@@ -3,6 +3,8 @@ module usb.device;
 import std.compat;
 import std.string;
 
+import tango.stdc.stringz : fromStringz, toStringz;
+
 import usb.libusb;
 import usb.descriptors;
 
@@ -97,6 +99,6 @@ class USBDevice {
 	}
 	
 	string getError( ) {
-		return std.string.toString( usb_strerror( ) );
+		return fromStringz( usb_strerror( ) );
 	}
 }

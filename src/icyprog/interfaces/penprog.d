@@ -3,6 +3,8 @@ module icyprog.interfaces.penprog;
 import std.compat;
 import std.stdio;
 
+import tango.io.Stdout;
+
 import usb.all;
 
 import icyprog.protocols.jtag;
@@ -12,7 +14,6 @@ class PenprogInterface : DebugInterface, IJTAG {
 	const byte jtagCommandGetBoard = 0x01;
 	const byte jtagCommandReset = 0x02;
 	const byte jtagCommandJumpBootloader = 0x03;
-	const byte jtagCommandFirmwareVersion = 0x04;
 
 	const byte jtagCommandClockBit = 0x20;
 	const byte jtagCommandClockBits = 0x21;
@@ -22,7 +23,7 @@ class PenprogInterface : DebugInterface, IJTAG {
 	const uint USBProductId = 0x2018;
 	
 	const int jtagBulkIn = 0x83;
-	const int jtagBulkOut = 0x04;
+	const int jtagBulkOut = 0x03;
 	
 	const int jtagInterface = 2;
 	
@@ -145,8 +146,8 @@ class PenprogInterface : DebugInterface, IJTAG {
 		// read the response
 		ubyte[32] readBytes;
 		while ( (ret = device.bulkRead( jtagBulkIn, readBytes )) != readBytes.length ) {
-			writefln( "USB Bulk Read failed (%s), retrying...", ret ); // loopies
-			writefln( "%s", device.getError( ) );
+			writefln( "CHUNK: USB Bulk Read failed (%s), retrying...", ret ); // loopies
+			Stdout( "Error: " ~ device.getError( ) ).newline;
 		}
 		
 		//writefln( "read = %s", readBytes[1] );
@@ -185,46 +186,6 @@ class PenprogInterface : DebugInterface, IJTAG {
 			
 			i += MaxBitsPerMessage;
 		}
-		
-		/*
-		for ( int i = 0; i < cmd.bitLength; i++ ) {
-			bool dataBit = cmd.GetBit(i);
-			bool tmsBit = cmd.GetTMSBit(i);
-			
-			ubyte outByte = 0;
-			
-			if ( dataBit )
-				outByte |= 1;
-			
-			if ( tmsBit )
-				outByte |= 2;
-			
-			int ret;
-			
-			bytes[0] = jtagCommandClockBit;
-			bytes[1] = outByte;
-			//writefln( "write = %s", bytes[1] );
-			while ( (ret = device.bulkWrite( jtagBulkOut, bytes )) != bytes.length ) {
-				writefln( "USB Bulk Write failed (%s), retrying...", ret ); // loopies
-				//try {device.ClearHalt( jtagBulkOut );} catch {}
-				
-				//System.Threading.Thread.Sleep( 100 );
-			}
-			
-			ubyte[32] readBytes;
-			while ( (ret = device.bulkRead( jtagBulkIn, readBytes )) != readBytes.length ) {
-				writefln( "USB Bulk Read failed (%s), retrying...", ret ); // loopies
-				writefln( "%s", device.getError( ) );
-				//try {device.ClearHalt( jtagBulkIn );} catch {}
-				
-				//System.Threading.Thread.Sleep( 100 );
-			}
-			
-			//writefln( "read = %s", readBytes[1] );
-			
-			response.SetBit( i, (readBytes[1] != 0) );
-		}
-		*/
 		
 		return response;
 	}
